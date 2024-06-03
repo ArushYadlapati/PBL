@@ -1,20 +1,30 @@
 #include <Arduino.h>
 #include "DHT_Async.h"
 #define DHT_SENSOR_TYPE DHT_TYPE_11
+#include <LiquidCrystal_I2C.h>
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 int sensorValue;
 int digitalValue;
 int airCount = 0;
 int buttonPressed = 0;
 
-static const int DHT_SENSOR_PIN = 2;
+static const int DHT_SENSOR_PIN = 3;
 DHT_Async dht_sensor(DHT_SENSOR_PIN, DHT_SENSOR_TYPE);
 
 void setup() {
+    pinMode(2, INPUT);
     pinMode(3, OUTPUT);
     pinMode(4, INPUT);
     pinMode(10, INPUT_PULLUP);
-    Serial.begin(115200);
+    Serial.begin(9600);
+    
+    // initialize the LCD
+    lcd.begin();
+
+    // Turn on the blacklight
+    lcd.setBacklight((uint8_t)1);
 }
 
 static bool measure_environment(float *temperature, float *humidity) {
@@ -41,13 +51,14 @@ void loop() {
     
     float temperature;
     float humidity;
-
-    delay(100);
     
     sensorValue = analogRead(0);
     digitalValue = digitalRead(2);
     
     Serial.println(airCount);
+    Serial.println(sensorValue);
+
+    delay(100);
 
     if (airCount > 20) {
         if (sensorValue > 50) {
@@ -62,7 +73,6 @@ void loop() {
             }
           }
         }
-
     }
 
     if ((sensorValue > 50) and airCount < 50) {
@@ -71,10 +81,7 @@ void loop() {
     
     else {
       noTone(3);
-      Serial.println(sensorValue);
-      Serial.print(" ");
-      Serial.print(buttonPressed);
-      if (sensorValue < 175) {
+      if (sensorValue < 300) {
         if (airCount > 0) {
           airCount = airCount - 1;
         }
@@ -87,6 +94,18 @@ void loop() {
         Serial.print(" deg. C, H = ");
         Serial.print(humidity, 1);
         Serial.println("%");
+        
+        String finalTemp = (String(temperature), " C");
+
+        lcd.clear();
+
+        lcd.setCursor(0, 0);
+        lcd.print(" Temp    Air Q");
+        
+        lcd.setCursor(0, 1);
+        lcd.print(temperature - 5);
+        lcd.print(finalTemp);
+        
         if (temperature > 35) {
           tone(3, 554);
           delay(100);
