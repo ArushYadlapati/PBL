@@ -56,7 +56,8 @@ void loop() {
     
     sensorValue = analogRead(0);
     digitalValue = digitalRead(2);
-    
+    analogWrite(5, sensorValue);
+    analogWrite(6, digitalWrite);
     Serial.println(airCount);
     Serial.println(sensorValue);
 
