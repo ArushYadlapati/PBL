@@ -63,11 +63,18 @@ void loop() {
     delay(100);
 
     if (airCount > 20) {
-        if (sensorValue > 50) {
+        if (sensorValue > 300) {
           if (buttonPressed == 1){
             if (digitalRead(10) == HIGH) {
               Serial.println(sensorValue);
-              Serial.print(" ");
+              if (sensorValue > 99){
+                Serial.print("");
+              }
+
+              else {
+                Serial.print(" ");
+              }
+              
               Serial.print(buttonPressed);
               tone(3, 32);
               delay(1000);
@@ -105,8 +112,26 @@ void loop() {
         lcd.print(" Temp    Air Q");
         
         lcd.setCursor(0, 1);
-        lcd.print(temperature - 5);
-        lcd.print(finalTemp);
+        lcd.print(temperature - 3.5);
+        lcd.print("C");
+        lcd.print(" ");
+        lcd.print(sensorValue);
+
+        if (sensorValue < 200) {
+          lcd.print(": Good");  
+        }
+
+        else if (sensorValue < 250) {
+          lcd.print(": Ok");  
+        }
+
+        else if (sensorValue < 275) {
+          lcd.print(": Poor");  
+        }
+
+        else {
+          lcd.print(": Bad");  
+        }
         
         if (temperature > 35) {
           tone(3, 554);
