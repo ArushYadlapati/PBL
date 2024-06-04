@@ -1,117 +1,152 @@
-/*------------------------------------------------------------------------
-  Simple ESP8266 test.  Requires SoftwareSerial and an ESP8266 that's been
-  flashed with recent 'AT' firmware operating at 9600 baud.  Only tested
-  w/Adafruit-programmed modules: https://www.adafruit.com/product/2282
+// Load Wi-Fi library
+// Library link in README
+#include <ESP8266WiFi.h>
 
-  The ESP8266 is a 3.3V device.  Safe operation with 5V devices (most
-  Arduino boards) requires a logic-level shifter for TX and RX signals.
-  ------------------------------------------------------------------------*/
+// Replace with your network credentials
+// Set up your own network hotspot
+const char* ssid     = "parthiv";
+const char* password = "helloworld";
 
-#include <Adafruit_ESP8266.h>
-#include <SoftwareSerial.h>
+// Set web server port number to 80
+WiFiServer server(80);
 
-#define ARD_RX_ESP_TX   2
-#define ARD_TX_ESP_RX   3
-#define ESP_RST         4
-SoftwareSerial softser(ARD_RX_ESP_TX, ARD_TX_ESP_RX); // Arduino RX = ESP TX, Arduino TX = ESP RX
+// Variable to store the HTTP request
+String header;
 
-// Must declare output stream before Adafruit_ESP8266 constructor; can be
-// a SoftwareSerial stream, or Serial/Serial1/etc. for UART.
-Adafruit_ESP8266 wifi(&softser, &Serial, ESP_RST);
-// Must call begin() on the stream(s) before using Adafruit_ESP8266 object.
+// Assign variables that will be printed
+int sensorValue;
+int digitalValue;
+// int airCount = 0;
 
-#define ESP_SSID "SSIDNAME" // Your network name here
-#define ESP_PASS "PASSWORD" // Your network password here
-
-#define HOST     "wifitest.adafruit.com"     // Host to contact
-#define PAGE     "/testwifi/index.html" // Web page to request
-#define PORT     80                     // 80 = HTTP default port
-
-#define LED_PIN  13
+// Pins
+int first_input = 5;
+int second_input = 6;
+// Current time
+unsigned long currentTime = millis();
+// Previous time
+unsigned long previousTime = 0; 
+// Define timeout time in milliseconds (example: 2000ms = 2s)
+const long timeoutTime = 2000;
 
 void setup() {
-  char buffer[50];
+  Serial.begin(115200);
+  // Initialize the output variables as outputs
+  pinMode(first_input, INPUT);
+  pinMode(second_input, INPUT);
 
-  // Flash LED on power-up
-  pinMode(LED_PIN, OUTPUT);
-  for(uint8_t i=0; i<3; i++) {
-    digitalWrite(LED_PIN, HIGH); delay(50);
-    digitalWrite(LED_PIN, LOW);  delay(100);
+  // Connect to Wi-Fi network with SSID and password
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
   }
-
-  // This might work with other firmware versions (no guarantees)
-  // by providing a string to ID the tail end of the boot message:
-  
-  // comment/replace this if you are using something other than v 0.9.2.4!
-  wifi.setBootMarker(F("Version:0.9.2.4]\r\n\r\nready"));
-
-  softser.begin(9600); // Soft serial connection to ESP8266
-  Serial.begin(57600); while(!Serial); // UART serial debug
-
-  Serial.println(F("Adafruit ESP8266 Demo"));
-
-  // Test if module is ready
-  Serial.print(F("Hard reset..."));
-  if(!wifi.hardReset()) {
-    Serial.println(F("no response from module."));
-    for(;;);
-  }
-  Serial.println(F("OK."));
-
-  Serial.print(F("Soft reset..."));
-  if(!wifi.softReset()) {
-    Serial.println(F("no response from module."));
-    for(;;);
-  }
-  Serial.println(F("OK."));
-
-  Serial.print(F("Checking firmware version..."));
-  wifi.println(F("AT+GMR"));
-  if(wifi.readLine(buffer, sizeof(buffer))) {
-    Serial.println(buffer);
-    wifi.find(); // Discard the 'OK' that follows
-  } else {
-    Serial.println(F("error"));
-  }
-
-  Serial.print(F("Connecting to WiFi..."));
-  if(wifi.connectToAP(F(ESP_SSID), F(ESP_PASS))) {
-
-    // IP addr check isn't part of library yet, but
-    // we can manually request and place in a string.
-    Serial.print(F("OK\nChecking IP addr..."));
-    wifi.println(F("AT+CIFSR"));
-    if(wifi.readLine(buffer, sizeof(buffer))) {
-      Serial.println(buffer);
-      wifi.find(); // Discard the 'OK' that follows
-
-      Serial.print(F("Connecting to host..."));
-      if(wifi.connectTCP(F(HOST), PORT)) {
-        Serial.print(F("OK\nRequesting page..."));
-        if(wifi.requestURL(F(PAGE))) {
-          Serial.println("OK\nSearching for string...");
-          // Search for a phrase in the open stream.
-          // Must be a flash-resident string (F()).
-          if(wifi.find(F("working"), true)) {
-            Serial.println(F("found!"));
-          } else {
-            Serial.println(F("not found."));
-          }
-        } else { // URL request failed
-          Serial.println(F("error"));
-        }
-        wifi.closeTCP();
-      } else { // TCP connect failed
-        Serial.println(F("D'oh!"));
-      }
-    } else { // IP addr check failed
-      Serial.println(F("error"));
-    }
-    wifi.closeAP();
-  } else { // WiFi connection failed
-    Serial.println(F("FAIL"));
-  }
+  // Print local IP address and start web server
+  Serial.println("");
+  Serial.println("WiFi connected.");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+  server.begin();
 }
 
-void loop() {
+void loop(){
+  WiFiClient client = server.available();
+
+  if (client) {
+    Serial.println("New Client.");          // print a message out in the serial port
+    String currentLine = "";                // make a String to hold incoming data from the client
+    currentTime = millis();
+    previousTime = currentTime;
+    while (client.connected() && currentTime - previousTime <= timeoutTime) { // loop while the client's connected
+      currentTime = millis();         
+      if (client.available()) {             // if there's bytes to read from the client,
+        char c = client.read();             // read a byte, then
+        Serial.write(c);                    // print it out the serial monitor
+        header += c;
+        if (c == '\n') {                    // if the byte is a newline character
+          // if the current line is blank, you got two newline characters in a row.
+          // that's the end of the client HTTP request, so send a response:
+          if (currentLine.length() == 0) {
+            // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
+            // and a content-type so the client knows what's coming, then a blank line:
+            client.println("HTTP/1.1 200 OK");
+            client.println("Content-type:text/html");
+            client.println("Connection: close");
+            client.println();
+            sensorValue = analogRead(first_input)
+            digitalValue = analogRead(second_input)
+            // turns the GPIOs on and off
+            /*if (header.indexOf("GET /5/on") >= 0) {
+              Serial.println("GPIO 5 on");
+              output5State = "on";
+              digitalWrite(output5, HIGH);
+            } else if (header.indexOf("GET /5/off") >= 0) {
+              Serial.println("GPIO 5 off");
+              output5State = "off";
+              digitalWrite(output5, LOW);
+            } else if (header.indexOf("GET /4/on") >= 0) {
+              Serial.println("GPIO 4 on");
+              output4State = "on";
+              digitalWrite(output4, HIGH);
+            } else if (header.indexOf("GET /4/off") >= 0) {
+              Serial.println("GPIO 4 off");
+              output4State = "off";
+              digitalWrite(output4, LOW);
+            }*/
+            
+            // Display the HTML web page
+            client.println("<!DOCTYPE html><html>");
+            client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
+            client.println("<link rel=\"icon\" href=\"data:,\">");
+            // CSS to style the on/off buttons
+            client.println("<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
+            client.println(".button { background-color: #195B6A; border: none; color: white; padding: 16px 40px;");
+            client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}");
+            client.println(".button2 {background-color: #77878A;}</style></head>");
+            
+            // Web Page Heading
+            client.println("<body><h1>D1 Mini Air Quality Web Server</h1>");
+            
+            // Display current state, and ON/OFF buttons for GPIO 5  int sensorValue;
+            client.println("<p>Sensor value: " + String(sensorValue) + "</p>");
+            client.println("<p>Digital value: " + String(digitalValue) + "</p>");
+            // client.println("<p>Air Count: " + String(airCount) + "</p>");
+            /*
+            // If the output5State is off, it displays the ON button       
+            if (output5State=="off") {
+              client.println("<p><a href=\"/5/on\"><button class=\"button\">ON</button></a></p>");
+            } else {
+              client.println("<p><a href=\"/5/off\"><button class=\"button button2\">OFF</button></a></p>");
+            } 
+               
+            // Display current state, and ON/OFF buttons for GPIO 4  
+            client.println("<p>GPIO 4 - State " + output4State + "</p>");
+            // If the output4State is off, it displays the ON button       
+            if (output4State=="off") {
+              client.println("<p><a href=\"/4/on\"><button class=\"button\">ON</button></a></p>");
+            } else {
+              client.println("<p><a href=\"/4/off\"><button class=\"button button2\">OFF</button></a></p>");
+            }*/
+            client.println("</body></html>");
+            
+            // The HTTP response ends with another blank line
+            client.println();
+            // Break out of the while loop
+            break;
+          } else { // if you got a newline, then clear currentLine
+            currentLine = "";
+          }
+        } else if (c != '\r') {  // if you got anything else but a carriage return character,
+          currentLine += c;      // add it to the end of the currentLine
+        }
+      }
+    }
+    // Clear the header variable
+    header = "";
+    // Close the connection
+    client.stop();
+    Serial.println("Client disconnected.");
+    Serial.println("");
+  }
 }
