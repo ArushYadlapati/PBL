@@ -4,8 +4,8 @@
 
 // Replace with your network credentials
 // Set up your own network hotspot
-const char* ssid     = "parthiv";
-const char* password = "helloworld";
+const char* ssid     = "air_quality";
+const char* password = "clean_air";
 
 // Set web server port number to 80
 WiFiServer server(80);
@@ -74,60 +74,40 @@ void loop(){
             client.println("Content-type:text/html");
             client.println("Connection: close");
             client.println();
-            sensorValue = analogRead(first_input)
-            digitalValue = analogRead(second_input)
-            // turns the GPIOs on and off
-            /*if (header.indexOf("GET /5/on") >= 0) {
-              Serial.println("GPIO 5 on");
-              output5State = "on";
-              digitalWrite(output5, HIGH);
-            } else if (header.indexOf("GET /5/off") >= 0) {
-              Serial.println("GPIO 5 off");
-              output5State = "off";
-              digitalWrite(output5, LOW);
-            } else if (header.indexOf("GET /4/on") >= 0) {
-              Serial.println("GPIO 4 on");
-              output4State = "on";
-              digitalWrite(output4, HIGH);
-            } else if (header.indexOf("GET /4/off") >= 0) {
-              Serial.println("GPIO 4 off");
-              output4State = "off";
-              digitalWrite(output4, LOW);
-            }*/
-            
+            sensorValue = analogRead(first_input);
+            digitalValue = analogRead(second_input);
+
             // Display the HTML web page
             client.println("<!DOCTYPE html><html>");
             client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
             client.println("<link rel=\"icon\" href=\"data:,\">");
-            // CSS to style the on/off buttons
+            // CSS to style
             client.println("<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
-            client.println(".button { background-color: #195B6A; border: none; color: white; padding: 16px 40px;");
+            // Button css (not necessary right now)
+            // client.println(".button2 {background-color: #77878A;}</style></head>");
+            // client.println(".button { background-color: #195B6A; border: none; color: white; padding: 16px 40px;");
             client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}");
-            client.println(".button2 {background-color: #77878A;}</style></head>");
             
             // Web Page Heading
             client.println("<body><h1>D1 Mini Air Quality Web Server</h1>");
             
-            // Display current state, and ON/OFF buttons for GPIO 5  int sensorValue;
+            // Display current state
             client.println("<p>Sensor value: " + String(sensorValue) + "</p>");
-            client.println("<p>Digital value: " + String(digitalValue) + "</p>");
-            // client.println("<p>Air Count: " + String(airCount) + "</p>");
-            /*
-            // If the output5State is off, it displays the ON button       
-            if (output5State=="off") {
-              client.println("<p><a href=\"/5/on\"><button class=\"button\">ON</button></a></p>");
-            } else {
-              client.println("<p><a href=\"/5/off\"><button class=\"button button2\">OFF</button></a></p>");
-            } 
-               
-            // Display current state, and ON/OFF buttons for GPIO 4  
-            client.println("<p>GPIO 4 - State " + output4State + "</p>");
-            // If the output4State is off, it displays the ON button       
-            if (output4State=="off") {
-              client.println("<p><a href=\"/4/on\"><button class=\"button\">ON</button></a></p>");
-            } else {
-              client.println("<p><a href=\"/4/off\"><button class=\"button button2\">OFF</button></a></p>");
-            }*/
+            client.println("<p>Digital value: " + String(digitalValue) + "</p>"); 
+            if (sensorValue < 200) {
+              client.println("<p>Air Quality: Good</p>");
+            }
+            if (sensorValue < 250) {
+              client.println("<p>Air Quality: Good</p>");
+            }
+            if (sensorValue < 275) {
+              client.println("<p>Air Quality: Poor</p>");
+            }
+            if (sensorValue < 1000) {
+              client.println("<p>Air Quality: Bad</p>");
+            }
+            client.println("<a href='https://www.parthiv.dev/'>Website developed by Parthiv</a>")
+            
             client.println("</body></html>");
             
             // The HTTP response ends with another blank line
