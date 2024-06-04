@@ -106,7 +106,7 @@ void loop(){
             if (sensorValue < 1000) {
               client.println("<p>Air Quality: Bad</p>");
             }
-            client.println("<a href='https://www.parthiv.dev/'>Website developed by Parthiv</a>")
+            client.println("<a href='https://www.parthiv.dev/'>Website developed by Parthiv</a>");
             
             client.println("</body></html>");
             
