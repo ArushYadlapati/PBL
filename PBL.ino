@@ -16,7 +16,9 @@ DHT_Async dht_sensor(DHT_SENSOR_PIN, DHT_SENSOR_TYPE);
 void setup() {
     pinMode(2, INPUT);
     pinMode(3, OUTPUT);
-    pinMode(4, INPUT);
+    pinMode(4, INPUT);    
+    pinMode(5, OUTPUT);
+    pinMode(6, OUTPUT);
     pinMode(10, INPUT_PULLUP);
     Serial.begin(9600);
     
